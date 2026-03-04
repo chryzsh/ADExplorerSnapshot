@@ -87,6 +87,47 @@ Certificate templates can be imported in [BloodHound](https://github.com/BloodHo
 If you use the regular BloodHound version you should only import the `cert_bh` JSON file (which are imported as GPOs). 
 If you use ly4k's fork, you should import the `cert_ly4k` files instead. Some information will be omitted (e.g. for ESC8 whether Web Enrollment is enabled) as it cannot be collected with AD Explorer.
 
+## Utility Scripts
+
+The `scripts/` folder contains standalone utilities that extract specific data from AD Explorer snapshots. These are independent from the main tool and can be run individually or all at once.
+
+### Run all scripts
+
+```
+python3 scripts/run_all.py snapshot.dat -o ./snapshot_dump
+```
+
+This produces a structured output folder:
+
+```
+snapshot_dump/
+  subnets.txt          # Subnets grouped by AD site
+  dns.txt              # AD-integrated DNS records
+  dfs.txt              # DFS link paths and target servers
+  phonenumbers.txt     # User phone numbers
+  certs/               # Certificate template info and ACLs
+  gpo/                 # Group Policy Objects and ACLs
+  interesting/         # Users, computers, groups, shares, LAPS,
+                       # Kerberoastable accounts, ASREProast, delegation, etc.
+```
+
+Scripts with missing optional dependencies (`adidnsdump`, `certipy`) are skipped automatically.
+
+### Individual scripts
+
+| Script | Description | Usage |
+|---|---|---|
+| `subnets_dump.py` | Subnets grouped by AD site | `python3 scripts/subnets_dump.py snapshot.dat [-p] [-o out.txt]` |
+| `adidns_dump.py` | AD-integrated DNS records | `python3 scripts/adidns_dump.py snapshot.dat [-o out.txt]` |
+| `dfs_dump.py` | DFS link paths and targets | `python3 scripts/dfs_dump.py snapshot.dat [-o out.txt]` |
+| `cert_dump.py` | Certificate templates and ACLs | `python3 scripts/cert_dump.py snapshot.dat -o output_folder/` |
+| `gpo_dump.py` | GPO info and ACLs | `python3 scripts/gpo_dump.py snapshot.dat -o output_folder/` |
+| `interestingdata_dump.py` | Users, computers, shares, LAPS, SPNs, delegation, etc. | `python3 scripts/interestingdata_dump.py snapshot.dat -o output_folder/` |
+| `telephonenumbers_dump.py` | Phone numbers from user objects | `python3 scripts/telephonenumbers_dump.py snapshot.dat [-o out.txt]` |
+| `get_attributes.py` | Extract arbitrary attributes | `python3 scripts/get_attributes.py snapshot.dat -a attr1 attr2 [-t User] [-o out.txt]` |
+
+All scripts can be run from any directory.
+
 ## Notes
 
 Making snapshots in AD Explorer is more network-intensive than the traditional BloodHound ingestors as it attempts to retrieve all objects it can from the LDAP.
