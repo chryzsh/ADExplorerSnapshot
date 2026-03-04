@@ -115,7 +115,7 @@ def main():
         try:
             result = subprocess.run(
                 [sys.executable, script] + script_args,
-                capture_output=True,
+                stderr=subprocess.PIPE,
                 text=True,
             )
             if result.returncode != 0:
