@@ -107,8 +107,7 @@ snapshot_dump/
   phonenumbers.txt     # User phone numbers
   certs/               # Certificate template info and ACLs
   gpo/                 # Group Policy Objects and ACLs
-  interesting/         # Users, computers, groups, shares, LAPS,
-                       # Kerberoastable accounts, ASREProast, delegation, etc.
+  interesting/         # See below for contents
 ```
 
 Scripts with missing optional dependencies (`adidnsdump`, `certipy`) are skipped automatically.
@@ -122,11 +121,33 @@ Scripts with missing optional dependencies (`adidnsdump`, `certipy`) are skipped
 | `dfs_dump.py` | DFS link paths and targets | `python3 scripts/dfs_dump.py snapshot.dat [-o out.txt]` |
 | `cert_dump.py` | Certificate templates and ACLs | `python3 scripts/cert_dump.py snapshot.dat -o output_folder/` |
 | `gpo_dump.py` | GPO info and ACLs | `python3 scripts/gpo_dump.py snapshot.dat -o output_folder/` |
-| `interestingdata_dump.py` | Users, computers, shares, LAPS, SPNs, delegation, etc. | `python3 scripts/interestingdata_dump.py snapshot.dat -o output_folder/` |
+| `interestingdata_dump.py` | Security-relevant data (see below) | `python3 scripts/interestingdata_dump.py snapshot.dat -o output_folder/` |
 | `telephonenumbers_dump.py` | Phone numbers from user objects | `python3 scripts/telephonenumbers_dump.py snapshot.dat [-o out.txt]` |
 | `get_attributes.py` | Extract arbitrary attributes | `python3 scripts/get_attributes.py snapshot.dat -a attr1 attr2 [-t User] [-o out.txt]` |
 
 All scripts can be run from any directory.
+
+### interestingdata_dump.py output files
+
+| File | Contents |
+|---|---|
+| `computers.txt` | All computer objects with OS, account control flags, last logon times |
+| `active_servers.txt` | Servers with a `lastLogonTimestamp` within 30 days of the snapshot (i.e. not stale/decommissioned) |
+| `users.txt` | User accounts with security attributes |
+| `groups.txt` | Group membership |
+| `shares.txt` | Network shares |
+| `printers.txt` | Printer objects |
+| `laps.txt` | LAPS passwords (if readable) |
+| `asreproast.txt` | Accounts with "Do not require Kerberos preauthentication" set |
+| `userspn.txt` | Users with SPNs (Kerberoast targets) |
+| `unconstraineddelegation.txt` | Accounts with unconstrained delegation |
+| `plaintextpwd.txt` | Accounts with plaintext password attributes |
+| `pwdnotreqd.txt` | Accounts with "Password not required" flag |
+| `precreated.txt` | Pre-created computer accounts (no logon timestamp) |
+| `sql_systems.txt` | Computers with MSSQLSvc SPNs |
+| `sccm.txt` | SCCM management points |
+| `sccm_potential_pxe.txt` | Servers with PXE capabilities |
+| `technologies.txt` | Detected technologies (LAPS, ADCS, Exchange, ADFS, SCCM) |
 
 ## Notes
 
