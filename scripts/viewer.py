@@ -325,7 +325,7 @@ def main():
 
     ViewerHandler.html_content = html
     server = HTTPServer(("0.0.0.0", args.port), ViewerHandler)
-    print(f"[+] Serving at http://localhost:{args.port}")
+    print(f"[+] Serving at http://0.0.0.0:{args.port}")
     print(f"    Press Ctrl+C to stop")
     try:
         server.serve_forever()
