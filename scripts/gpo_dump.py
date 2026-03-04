@@ -152,8 +152,8 @@ for idx, obj in track(enumerate(ades.snap.objects), description="Processing obje
         computer_version = versionnumber & 0xFFFF
 
         # Convert to human readable timestamp
-        whenchanged = datetime.fromtimestamp(ADUtils.get_entry_property(obj, 'whenchanged'), datetime.UTC).strftime('%Y-%m-%d %H:%M:%S')
-        whencreated = datetime.fromtimestamp(ADUtils.get_entry_property(obj, 'whencreated'), datetime.UTC).strftime('%Y-%m-%d %H:%M:%S')
+        whenchanged = datetime.fromtimestamp(ADUtils.get_entry_property(obj, 'whenchanged'), timezone.utc).strftime('%Y-%m-%d %H:%M:%S')
+        whencreated = datetime.fromtimestamp(ADUtils.get_entry_property(obj, 'whencreated'), timezone.utc).strftime('%Y-%m-%d %H:%M:%S')
 
         security = CertificateSecurity(ADUtils.get_entry_property(obj, "nTSecurityDescriptor", raw=True))
 
