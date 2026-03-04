@@ -142,26 +142,26 @@ HTML_TEMPLATE = """<!DOCTYPE html>
 <title>AD Explorer Snapshot Viewer</title>
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
-body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: #1a1a2e; color: #e0e0e0; display: flex; height: 100vh; }
-#sidebar { width: 240px; background: #16213e; padding: 12px; overflow-y: auto; flex-shrink: 0; border-right: 1px solid #0f3460; }
-#sidebar h2 { font-size: 14px; color: #e94560; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 1px; }
+body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: #1e1e1e; color: #d4d4d4; display: flex; height: 100vh; }
+#sidebar { width: 240px; background: #252526; padding: 12px; overflow-y: auto; flex-shrink: 0; border-right: 1px solid #333; }
+#sidebar h2 { font-size: 14px; color: #ccc; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 1px; }
 .nav-section { font-size: 11px; color: #888; text-transform: uppercase; margin-top: 12px; margin-bottom: 4px; letter-spacing: 1px; }
 .nav-item { padding: 6px 10px; cursor: pointer; border-radius: 4px; font-size: 13px; margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.nav-item:hover { background: #0f3460; }
-.nav-item.active { background: #e94560; color: white; }
+.nav-item:hover { background: #333; }
+.nav-item.active { background: #0078d4; color: white; }
 #main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
-#toolbar { padding: 12px 16px; background: #16213e; border-bottom: 1px solid #0f3460; display: flex; align-items: center; gap: 12px; }
-#toolbar h3 { font-size: 16px; color: #e94560; }
-#search { padding: 6px 12px; background: #1a1a2e; border: 1px solid #0f3460; color: #e0e0e0; border-radius: 4px; width: 300px; font-size: 13px; }
-#search:focus { outline: none; border-color: #e94560; }
+#toolbar { padding: 12px 16px; background: #252526; border-bottom: 1px solid #333; display: flex; align-items: center; gap: 12px; }
+#toolbar h3 { font-size: 16px; color: #ccc; }
+#search { padding: 6px 12px; background: #1e1e1e; border: 1px solid #444; color: #d4d4d4; border-radius: 4px; width: 300px; font-size: 13px; }
+#search:focus { outline: none; border-color: #0078d4; }
 #count { font-size: 12px; color: #888; }
 #table-wrap { flex: 1; overflow: auto; padding: 0 16px 16px; }
 table { width: 100%; border-collapse: collapse; font-size: 13px; }
-th { position: sticky; top: 0; background: #16213e; color: #e94560; text-align: left; padding: 8px 10px; border-bottom: 2px solid #0f3460; cursor: pointer; user-select: none; white-space: nowrap; }
-th:hover { background: #0f3460; }
-td { padding: 6px 10px; border-bottom: 1px solid #0f3460; max-width: 400px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+th { position: sticky; top: 0; background: #252526; color: #ccc; text-align: left; padding: 8px 10px; border-bottom: 2px solid #444; cursor: pointer; user-select: none; white-space: nowrap; }
+th:hover { background: #333; }
+td { padding: 6px 10px; border-bottom: 1px solid #2d2d2d; max-width: 400px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 td:hover { white-space: normal; word-break: break-all; }
-tr:hover { background: rgba(233, 69, 96, 0.1); }
+tr:hover { background: #2a2d2e; }
 .empty { padding: 40px; text-align: center; color: #888; }
 </style>
 </head>
