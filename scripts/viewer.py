@@ -303,7 +303,7 @@ class ViewerHandler(SimpleHTTPRequestHandler):
 def main():
     parser = argparse.ArgumentParser(description="Web viewer for ADExplorerSnapshot dump output")
     parser.add_argument("dump_dir", help="Path to the snapshot-dump output folder")
-    parser.add_argument("-p", "--port", type=int, default=8888, help="Port to serve on (default: 8888)")
+    parser.add_argument("-p", "--port", type=int, default=80, help="Port to serve on (default: 80)")
     parser.add_argument("--html", help="Export to static HTML file instead of serving")
     args = parser.parse_args()
 
