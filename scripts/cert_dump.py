@@ -1,6 +1,9 @@
 # Script to dump Certificate information
 # author: @oddvarmoe
 
+import sys, os
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 from adexpsnapshot import ADExplorerSnapshot
 from rich.progress import track
 from bloodhound.ad.utils import ADUtils

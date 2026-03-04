@@ -1,6 +1,9 @@
 # Script to list out phone numbers
 # author: @oddvarmoe
 
+import sys, os
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 from adexpsnapshot import ADExplorerSnapshot
 from bloodhound.ad.utils import ADUtils
 import argparse

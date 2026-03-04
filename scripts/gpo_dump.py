@@ -1,5 +1,8 @@
-# Script to dump Certificate information
+# Script to dump GPO information
 # author: @oddvarmoe
+
+import sys, os
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from adexpsnapshot import ADExplorerSnapshot
 from rich.progress import track
