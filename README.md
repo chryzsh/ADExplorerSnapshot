@@ -112,6 +112,26 @@ snapshot_dump/
 
 Scripts with missing optional dependencies (`adidnsdump`, `certipy`) are skipped automatically.
 
+### View run_all output in a browser
+
+After generating a dump folder with `run_all.py`, launch the viewer:
+
+```bash
+python3 scripts/viewer.py ./snapshot_dump
+```
+
+The viewer serves on `http://0.0.0.0:80` by default. If port 80 is unavailable, set another port:
+
+```bash
+python3 scripts/viewer.py ./snapshot_dump -p 8080
+```
+
+To generate a standalone HTML report instead of starting a web server:
+
+```bash
+python3 scripts/viewer.py ./snapshot_dump --html snapshot_dump.html
+```
+
 ### Individual scripts
 
 | Script | Description | Usage |
@@ -124,6 +144,7 @@ Scripts with missing optional dependencies (`adidnsdump`, `certipy`) are skipped
 | `interestingdata_dump.py` | Security-relevant data (see below) | `python3 scripts/interestingdata_dump.py snapshot.dat -o output_folder/` |
 | `telephonenumbers_dump.py` | Phone numbers from user objects | `python3 scripts/telephonenumbers_dump.py snapshot.dat [-o out.txt]` |
 | `get_attributes.py` | Extract arbitrary attributes | `python3 scripts/get_attributes.py snapshot.dat -a attr1 attr2 [-t User] [-o out.txt]` |
+| `viewer.py` | Web viewer for `run_all.py` output folders | `python3 scripts/viewer.py snapshot_dump/ [-p 8080] [--html report.html]` |
 
 All scripts can be run from any directory.
 
