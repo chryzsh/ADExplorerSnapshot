@@ -1,5 +1,4 @@
 """BOFHound output mode - outputs objects in BOFHound log format."""
-import codecs
 import base64
 import datetime
 import logging
@@ -50,7 +49,7 @@ class BOFHoundEncoder:
                     return "0"
                 value = value[0] & 0xFFFFFFFF
             return datetime.datetime.fromtimestamp(value, datetime.UTC).strftime('%Y%m%d%H%M%S.0Z')
-        except:
+        except (TypeError, ValueError, OSError, OverflowError):
             logging.warning(f"Failed to parse timestamp for attribute {attr}")
             return "0"
 
@@ -69,32 +68,36 @@ class BOFHoundOutput:
         """Process all objects and output to BOFHound log file."""
         def write_worker(result_q, filename):
             try:
-                fh_out = codecs.open(filename, 'w', 'utf-8')
-            except:
-                logging.warning('Could not write file: %s', filename)
-                result_q.task_done()
+                fh_out = open(filename, "w", encoding="utf-8")
+            except OSError as exc:
+                logging.warning("Could not write file %s: %s", filename, exc)
+                # Drain queue so producer can finish cleanly without deadlocking on join().
+                while True:
+                    data = result_q.get()
+                    result_q.task_done()
+                    if data is None:
+                        break
                 return
 
-            wroteOnce = False
-            while True:
-                data = result_q.get()
+            wrote_once = False
+            with fh_out:
+                while True:
+                    data = result_q.get()
 
-                if data is None:
-                    break
+                    if data is None:
+                        break
 
-                if not wroteOnce:
-                    wroteOnce = True
-                else:
-                    fh_out.write('--------------------\n')
+                    if not wrote_once:
+                        wrote_once = True
+                    else:
+                        fh_out.write('--------------------\n')
 
-                try:
-                    encoded_member = self.encoder.encode(data)
-                    fh_out.write(encoded_member)
-                except TypeError:
-                    logging.error('Data error {0}, could not convert data to BOFHound log'.format(repr(data)))
-                result_q.task_done()
-
-            fh_out.close()
+                    try:
+                        encoded_member = self.encoder.encode(data)
+                        fh_out.write(encoded_member)
+                    except TypeError:
+                        logging.error("Data error %r, could not convert data to BOFHound log", data)
+                    result_q.task_done()
             result_q.task_done()
 
         wq = queue.Queue()
@@ -102,8 +105,8 @@ class BOFHoundOutput:
         results_worker.daemon = True
         results_worker.start()
 
-        for idx, obj in track(enumerate(self.snap.objects), description="Dumping objects", total=self.snap.header.numObjects):
-            wq.put((dict(obj.attributes.data)))
+        for obj in track(self.snap.objects, description="Dumping objects", total=self.snap.header.numObjects):
+            wq.put(dict(obj.attributes.data))
 
         wq.put(None)
         wq.join()

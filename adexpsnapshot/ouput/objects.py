@@ -1,5 +1,4 @@
 """Objects output mode - outputs all objects as NDJSON."""
-import codecs
 import json
 import base64
 import logging
@@ -25,36 +24,40 @@ class ObjectsOutput:
             def default(self, obj):
                 if isinstance(obj, bytes):
                     return base64.b64encode(obj).decode("ascii")
-                return json.JSONEncoder.default(self, obj)
+                return super().default(obj)
 
         def write_worker(result_q, filename):
             try:
-                fh_out = codecs.open(filename, 'w', 'utf-8')
-            except:
-                logging.warning('Could not write file: %s', filename)
-                result_q.task_done()
+                fh_out = open(filename, "w", encoding="utf-8")
+            except OSError as exc:
+                logging.warning("Could not write file %s: %s", filename, exc)
+                # Drain queue so producer can finish cleanly without deadlocking on join().
+                while True:
+                    data = result_q.get()
+                    result_q.task_done()
+                    if data is None:
+                        break
                 return
 
-            wroteOnce = False
-            while True:
-                data = result_q.get()
+            wrote_once = False
+            with fh_out:
+                while True:
+                    data = result_q.get()
 
-                if data is None:
-                    break
+                    if data is None:
+                        break
 
-                if not wroteOnce:
-                    wroteOnce = True
-                else:
-                    fh_out.write('\n')
+                    if not wrote_once:
+                        wrote_once = True
+                    else:
+                        fh_out.write('\n')
 
-                try:
-                    encoded_member = json.dumps(data, indent=None, cls=BaseSafeEncoder)
-                    fh_out.write(encoded_member)
-                except TypeError:
-                    logging.error('Data error {0}, could not convert data to json'.format(repr(data)))
-                result_q.task_done()
-
-            fh_out.close()
+                    try:
+                        encoded_member = json.dumps(data, indent=None, cls=BaseSafeEncoder)
+                        fh_out.write(encoded_member)
+                    except TypeError:
+                        logging.error("Data error %r, could not convert data to json", data)
+                    result_q.task_done()
             result_q.task_done()
             
         wq = queue.Queue()
@@ -62,8 +65,8 @@ class ObjectsOutput:
         results_worker.daemon = True
         results_worker.start()
 
-        for idx, obj in track(enumerate(self.snap.objects), description="Dumping objects", total=self.snap.header.numObjects):
-            wq.put((dict(obj.attributes.data)))
+        for obj in track(self.snap.objects, description="Dumping objects", total=self.snap.header.numObjects):
+            wq.put(dict(obj.attributes.data))
 
         wq.put(None)
         wq.join()

@@ -199,9 +199,8 @@ class Object(WrapStruct):
     def classes(self):
         try:
             return list(map(str.casefold, self.attributes.get('objectClass', [])))
-        except Exception as e:
-            print("Error in resolving objectClass:")
-            print(e)
+        except Exception as exc:
+            logging.debug("Error resolving objectClass: %s", exc)
         return []
 
     @functools.cached_property

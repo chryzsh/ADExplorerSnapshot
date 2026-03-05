@@ -9,9 +9,12 @@ import re
 from http.server import HTTPServer, SimpleHTTPRequestHandler
 from pathlib import Path
 
+def read_text(filepath):
+    return filepath.read_text(encoding="utf-8", errors="replace")
+
 def parse_delimited(filepath):
     """Parse ||-delimited files with header row."""
-    lines = filepath.read_text().strip().splitlines()
+    lines = read_text(filepath).strip().splitlines()
     if not lines:
         return [], []
     headers = [h.strip() for h in lines[0].split("||")]
@@ -26,7 +29,7 @@ def parse_delimited(filepath):
 
 def parse_block(filepath):
     """Parse block-formatted files (certs, gpo) into list of dicts."""
-    text = filepath.read_text().strip()
+    text = read_text(filepath).strip()
     if not text:
         return [], []
 
@@ -71,14 +74,14 @@ def parse_block(filepath):
 
 def parse_lines(filepath):
     """Parse freeform text files as single-column data."""
-    lines = filepath.read_text().strip().splitlines()
+    lines = read_text(filepath).strip().splitlines()
     lines = [l for l in lines if l.strip() and not l.startswith("[+]") and not l.startswith("[*]")]
     return ["value"], [[l.strip()] for l in lines]
 
 
 def parse_dns(filepath):
     """Parse adidns_dump.py output lines."""
-    lines = filepath.read_text().strip().splitlines()
+    lines = read_text(filepath).strip().splitlines()
     lines = [l.strip() for l in lines if l.strip()]
     if not lines:
         return [], []
@@ -130,8 +133,10 @@ def load_data(dump_dir):
         if f.stat().st_size == 0:
             continue
         # try delimited first
-        first_line = f.read_text().split("\n", 1)[0]
-        if "||" in first_line:
+        first_line = read_text(f).split("\n", 1)[0]
+        if f.name.lower() == "dns.txt":
+            headers, rows = parse_dns(f)
+        elif "||" in first_line:
             headers, rows = parse_delimited(f)
         elif first_line.startswith("[+] Type:") or "Unexpected record type seen:" in first_line:
             headers, rows = parse_dns(f)
@@ -147,7 +152,7 @@ def load_data(dump_dir):
 
 def parse_pipe(filepath):
     """Parse pipe-separated files (phonenumbers)."""
-    lines = filepath.read_text().strip().splitlines()
+    lines = read_text(filepath).strip().splitlines()
     lines = [l for l in lines if l.strip() and not l.startswith("[+]")]
     if not lines:
         return [], []

@@ -82,7 +82,7 @@ class BloodHoundOutput:
             results_worker.daemon = True
             results_worker.start()
 
-        for idx, obj in track(enumerate(self.snap.objects), description="Processing", total=self.snap.header.numObjects):
+        for obj in track(self.snap.objects, description="Processing", total=self.snap.header.numObjects):
             for fun in [self.processUsers, self.processComputers, self.processGroups, 
                        self.processTrusts, self.processCertTemplates, self.processCAs]:
                 ret = fun(obj)
@@ -662,21 +662,37 @@ class BloodHoundOutput:
         }
         self.writeQueues["groups"].put(iugroup)
 
+    @staticmethod
+    def _to_rights_list(rights_value):
+        if rights_value is None:
+            return []
+        try:
+            return list(rights_value)
+        except TypeError:
+            if hasattr(rights_value, "to_list"):
+                return rights_value.to_list()
+            return [rights_value]
+
+    def _resolve_principal(self, sid):
+        if sid in ADUtils.WELLKNOWN_SIDS:
+            principal = u"%s-%s" % (self.domainname.upper(), sid)
+            principal_type = ADUtils.WELLKNOWN_SIDS[sid][1].capitalize()
+            return principal, principal_type
+
+        try:
+            entry = self.snap.getObject(self.sidcache[sid])
+            resolved_entry = ADUtils.resolve_ad_entry(entry)
+            principal_type = resolved_entry.get("type", "Unknown")
+        except KeyError:
+            principal_type = "Unknown"
+
+        return sid, principal_type
+
     def security_to_bloodhound_aces(self, security: ActiveDirectorySecurity) -> List:
         aces = []
-        principal_type = ""
 
         owner_sid = security.owner
-        if owner_sid in ADUtils.WELLKNOWN_SIDS:
-            principal = u'%s-%s' % (self.domainname.upper(), owner_sid)
-            principal_type = ADUtils.WELLKNOWN_SIDS[owner_sid][1].capitalize()
-        else:
-            try:
-                entry = self.snap.getObject(self.sidcache[owner_sid])
-                resolved_entry = ADUtils.resolve_ad_entry(entry)
-                principal_type = resolved_entry['type']
-            except KeyError:
-                entry = {'type': 'Unknown', 'principal': owner_sid}
+        _, principal_type = self._resolve_principal(owner_sid)
         aces.append({
             "PrincipalSID": owner_sid,
             "PrincipalType": principal_type,
@@ -685,24 +701,8 @@ class BloodHoundOutput:
         })
 
         for sid, rights in security.aces.items():
-            principal = sid
-            principal_type = ""
-
-            if sid in ADUtils.WELLKNOWN_SIDS:
-                principal = u'%s-%s' % (self.domainname.upper(), sid)
-                principal_type = ADUtils.WELLKNOWN_SIDS[sid][1].capitalize()
-            else:
-                try:
-                    entry = self.snap.getObject(self.sidcache[sid])
-                    resolved_entry = ADUtils.resolve_ad_entry(entry)
-                    principal_type = resolved_entry['type']
-                except KeyError:
-                    entry = {'type': 'Unknown', 'principal': sid}
-
-            try:
-                standard_rights = list(rights["rights"])
-            except:
-                standard_rights = rights["rights"].to_list()
+            principal, principal_type = self._resolve_principal(sid)
+            standard_rights = self._to_rights_list(rights.get("rights"))
 
             for right in standard_rights:
                 aces.append({
@@ -712,7 +712,7 @@ class BloodHoundOutput:
                     "IsInherited": False,
                 })
 
-            extended_rights = rights["extended_rights"]
+            extended_rights = rights.get("extended_rights", [])
             for extended_right in extended_rights:
                 aces.append({
                     "PrincipalSID": principal,
@@ -725,30 +725,13 @@ class BloodHoundOutput:
 
     def ca_security_to_bloodhound_aces(self, security: ActiveDirectorySecurity) -> List:
         aces = []
-        principal_type = ""
 
         for sid, rights in security.aces.items():
-            principal = sid
-            principal_type = ""
-
-            if sid in ADUtils.WELLKNOWN_SIDS:
-                principal = u'%s-%s' % (self.domainname.upper(), sid)
-                principal_type = ADUtils.WELLKNOWN_SIDS[sid][1].capitalize()
-            else:
-                try:
-                    entry = self.snap.getObject(self.sidcache[sid])
-                    resolved_entry = ADUtils.resolve_ad_entry(entry)
-                    principal_type = resolved_entry['type']
-                except KeyError:
-                    entry = {'type': 'Unknown', 'principal': sid}
-
-            try:
-                standard_rights = list(rights["rights"])
-            except:
-                standard_rights = rights["rights"].to_list()
+            principal, principal_type = self._resolve_principal(sid)
+            standard_rights = self._to_rights_list(rights.get("rights"))
 
             for right in standard_rights:
-                if not principal_type == "Computer":
+                if principal_type != "Computer":
                     aces.append({
                         "PrincipalSID": principal,
                         "PrincipalType": principal_type,
@@ -756,7 +739,7 @@ class BloodHoundOutput:
                         "IsInherited": False,
                     })
 
-            extended_rights = rights["extended_rights"]
+            extended_rights = rights.get("extended_rights", [])
             for extended_right in extended_rights:
                 aces.append({
                     "PrincipalSID": principal,
@@ -766,4 +749,3 @@ class BloodHoundOutput:
                 })
 
         return aces
-

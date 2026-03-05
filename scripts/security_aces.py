@@ -55,7 +55,9 @@ def _to_rights_list(rights_value):
     try:
         return list(rights_value)
     except TypeError:
-        return rights_value.to_list()
+        if hasattr(rights_value, "to_list"):
+            return rights_value.to_list()
+        return [rights_value]
 
 
 def security_to_bloodhound_aces(security, ades):

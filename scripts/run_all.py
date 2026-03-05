@@ -183,7 +183,7 @@ def main():
             else:
                 print(f"[+] {name} done")
                 passed += 1
-        except Exception as e:
+        except OSError as e:
             print(f"[-] {name} error: {e}")
             failed += 1
 

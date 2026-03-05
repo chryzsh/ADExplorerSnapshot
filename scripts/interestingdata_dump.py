@@ -8,35 +8,11 @@ from adexpsnapshot import ADExplorerSnapshot
 from rich.progress import track
 from bloodhound.ad.utils import ADUtils
 from datetime import datetime, timedelta, timezone
-from pathlib import Path
+from report_utils import convert_ad_timestamp, valid_directory
 import argparse
-import os
 import logging
 
-def valid_directory(path):
-    """Check if the provided path is a valid directory or create it if it does not exist."""
-    path = Path(path) 
-    if not path.exists():
-        # Attempt to create the directory
-        try:
-            path.mkdir(parents=True, exist_ok=True)
-            #print(f"Directory created at {path}")
-        except OSError as e:
-            # If creation fails, raise an argparse error
-            raise argparse.ArgumentTypeError(f"Could not create directory: {path}. {str(e)}")
-    elif not path.is_dir():
-        # If the path exists but is not a directory, raise an error
-        raise argparse.ArgumentTypeError(f"The path {path} exists but is not a directory.")
-    return path
-
-def convert_ad_timestamp(timestamp):
-    if timestamp is None:
-        return None
-    base_date = datetime(1601, 1, 1, tzinfo=timezone.utc) # Base date for Windows File Time (January 1, 1601)
-    return base_date + timedelta(microseconds=timestamp / 10) # Convert the timestamp (in 100-nanosecond intervals) to microseconds (/10) and add to base date
-    
-
-parser = argparse.ArgumentParser(add_help=True, description="Script to dump interesting stuff from an AdExplorer snapshot", formatter_class=argparse.RawDescriptionHelpFormatter)
+parser = argparse.ArgumentParser(add_help=True, description="Script to dump security-relevant AD data from an AdExplorer snapshot", formatter_class=argparse.RawDescriptionHelpFormatter)
 parser.add_argument("snapshot", type=argparse.FileType("rb"), help="Path to the snapshot file")
 parser.add_argument("-o", "--output_folder", required=True, type=valid_directory, help="Folder to save output to")
 args = parser.parse_args()
@@ -96,7 +72,7 @@ out_precreated.append("samaccountname||useraccountcontrol||pwdlastset||whencreat
 out_sql_systems.append("samaccountname||dnshostname||operatingsystem||operatingsystemversion||description||lastlogontimestamp")
 out_technologies.append("technology||notes")
 
-for idx, obj in track(enumerate(ades.snap.objects), description="Processing objects", total=ades.snap.header.numObjects):
+for obj in track(ades.snap.objects, description="Processing objects", total=ades.snap.header.numObjects):
     # get computers
     object_resolved = ADUtils.resolve_ad_entry(obj)
     if object_resolved['type'] == 'Computer':
@@ -272,7 +248,7 @@ if args.output_folder:
 
     for filename, lines in output_files.items():
         if lines:
-            with open(Path(args.output_folder / filename), "w", encoding="utf-8") as output_file:
+            with open(args.output_folder / filename, "w", encoding="utf-8") as output_file:
                 output_file.write(os.linesep.join(lines))
 
     logging.info(f"Output written to files in {args.output_folder}")

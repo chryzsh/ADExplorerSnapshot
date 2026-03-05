@@ -33,21 +33,22 @@ namespace = {'ns': 'http://schemas.microsoft.com/dfs/2007/03'}
 
 out = []
 for target_list, link_path in dfs_pairs:
-    if link_path is not None:
-        try:
-            xml_data = target_list.decode('utf-16le')
-            root = ET.fromstring(xml_data)
-            targets = [t.text for t in root.findall("ns:target", namespace)]
-        except Exception as e:
-            print(f'[-] {e}')
-        else:
-            joined_targets = '\n             '.join(targets)
-            block = f'--------------------------------------------------------------------------------\nLink path:   {link_path}\nTarget list: {joined_targets}'
-            print(block)
-            out.append(block)
+    if link_path is None or target_list is None:
+        continue
+    try:
+        xml_data = target_list.decode('utf-16le')
+        root = ET.fromstring(xml_data)
+        targets = [t.text for t in root.findall("ns:target", namespace)]
+    except (UnicodeDecodeError, ET.ParseError) as e:
+        print(f'[-] {e}')
+    else:
+        joined_targets = '\n             '.join(targets)
+        block = f'--------------------------------------------------------------------------------\nLink path:   {link_path}\nTarget list: {joined_targets}'
+        print(block)
+        out.append(block)
 
 if args.output_file:
-    with open(args.output_file, "w") as outFile:
+    with open(args.output_file, "w", encoding="utf-8") as outFile:
         outFile.write(os.linesep.join(out))
     print()
     print("[+]", f"Output written to {args.output_file}")

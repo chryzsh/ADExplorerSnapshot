@@ -1,7 +1,9 @@
 """Small helpers for standalone dump scripts."""
 
+import argparse
 from datetime import datetime, timedelta, timezone
 import os
+from pathlib import Path
 
 
 def ensure_list(value):
@@ -40,3 +42,16 @@ def write_rows(rows, output_file=None, sort_rows=False):
     else:
         for line in rows:
             print(line)
+
+
+def valid_directory(path):
+    """Return a writable directory path, creating it if needed."""
+    resolved = Path(path)
+    if not resolved.exists():
+        try:
+            resolved.mkdir(parents=True, exist_ok=True)
+        except OSError as exc:
+            raise argparse.ArgumentTypeError(f"Could not create directory: {resolved}. {exc}")
+    elif not resolved.is_dir():
+        raise argparse.ArgumentTypeError(f"The path {resolved} exists but is not a directory.")
+    return resolved

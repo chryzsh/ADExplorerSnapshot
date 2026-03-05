@@ -48,7 +48,7 @@ for k,v in ades.dncache.items():
                 out.append(line)
 
 if args.output_file:
-    with open(args.output_file, "w") as outFile:
+    with open(args.output_file, "w", encoding="utf-8") as outFile:
         outFile.write(os.linesep.join(out))
     print()
     print("[+]", f"Output written to {args.output_file}")

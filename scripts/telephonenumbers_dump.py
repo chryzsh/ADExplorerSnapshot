@@ -7,9 +7,8 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from adexpsnapshot import ADExplorerSnapshot
 from bloodhound.ad.utils import ADUtils
 import argparse
-import os
 
-parser = argparse.ArgumentParser(add_help=True, description="Script to extract subnets and IPs from an AdExplorer snapshot", formatter_class=argparse.RawDescriptionHelpFormatter)
+parser = argparse.ArgumentParser(add_help=True, description="Script to extract phone numbers from an AdExplorer snapshot", formatter_class=argparse.RawDescriptionHelpFormatter)
 parser.add_argument("snapshot", type=argparse.FileType("rb"), help="Path to the snapshot file")
 parser.add_argument("-o", "--output_file", required=False, help="Save output to file")
 args = parser.parse_args()
@@ -22,7 +21,7 @@ print("[+]",f"Finding users with the attribute telephonenumber set")
 print("[+]",f"Outputformat:")
 print("[+]",f"name | telephonenumber | title | department | samaccountname | userprincipalname")
     
-for idx,obj in enumerate(ades.snap.objects):
+for obj in ades.snap.objects:
     # get users
     if ADUtils.get_entry_property(obj, 'sAMAccountType', -1) == 805306368:
         name = ADUtils.get_entry_property(obj, 'name')

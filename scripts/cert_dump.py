@@ -11,28 +11,11 @@ from certipy.lib.constants import *
 from certipy.lib.security import CertificateSecurity
 from certipy.commands.find import filetime_to_str
 from security_aces import security_to_bloodhound_aces
-from pathlib import Path
+from report_utils import valid_directory
 import argparse
-import os
 import logging
 
-def valid_directory(path):
-    """Check if the provided path is a valid directory or create it if it does not exist."""
-    path = Path(path) 
-    if not path.exists():
-        # Attempt to create the directory
-        try:
-            path.mkdir(parents=True, exist_ok=True)
-            #print(f"Directory created at {path}")
-        except OSError as e:
-            # If creation fails, raise an argparse error
-            raise argparse.ArgumentTypeError(f"Could not create directory: {path}. {str(e)}")
-    elif not path.is_dir():
-        # If the path exists but is not a directory, raise an error
-        raise argparse.ArgumentTypeError(f"The path {path} exists but is not a directory.")
-    return path
-
-parser = argparse.ArgumentParser(add_help=True, description="Script to dump interesting stuff from an AdExplorer snapshot", formatter_class=argparse.RawDescriptionHelpFormatter)
+parser = argparse.ArgumentParser(add_help=True, description="Script to dump certificate template information from an AdExplorer snapshot", formatter_class=argparse.RawDescriptionHelpFormatter)
 parser.add_argument("snapshot", type=argparse.FileType("rb"), help="Path to the snapshot file")
 parser.add_argument("-o", "--output_folder", required=True, type=valid_directory, help="Folder to save output to")
 parser.add_argument("-e", "--enabled", required=False, help="Only get enabled templates", action="store_true")
@@ -45,9 +28,7 @@ ades.preprocessCached()
 # Out streams
 out_certs = []
 
-for idx, obj in track(enumerate(ades.snap.objects), description="Processing objects", total=ades.snap.header.numObjects):
-    object_resolved = ADUtils.resolve_ad_entry(obj)
-    
+for obj in track(ades.snap.objects, description="Processing objects", total=ades.snap.header.numObjects):
     if 'pkicertificatetemplate' in obj.classes:
         name = ADUtils.get_entry_property(obj, 'name')
         if args.enabled:
@@ -56,7 +37,6 @@ for idx, obj in track(enumerate(ades.snap.objects), description="Processing obje
             
         # Enable check if cert is under any CA (e.g. enabled)
         enabled = name in ades.certtemplates
-        object_identifier = ADUtils.get_entry_property(obj, 'objectGUID')
         validity_period = filetime_to_str(ADUtils.get_entry_property(obj, 'pKIExpirationPeriod'))
         renewal_period = filetime_to_str(ADUtils.get_entry_property(obj, 'pKIOverlapPeriod'))
         
@@ -96,17 +76,6 @@ for idx, obj in track(enumerate(ades.snap.objects), description="Processing obje
             or len(extended_key_usage) == 0
         )
 
-        enrollment_agent = (
-            any(
-                eku in extended_key_usage
-                for eku in [
-                    "Certificate Request Agent",
-                    "Any Purpose",
-                ]
-            )
-            or len(extended_key_usage) == 0
-        )
-
         enrollee_supplies_subject = any(
             flag in certificate_name_flag
             for flag in [
@@ -122,50 +91,6 @@ for idx, obj in track(enumerate(ades.snap.objects), description="Processing obje
 
         aces = security_to_bloodhound_aces(security, ades)
 
-        # Could be useful later if we want to output to JSON
-        # certtemplate = {
-        #     'Properties': {
-        #         'highvalue': (
-        #         enabled
-        #         and any(
-        #             [
-        #             all(
-        #                 [
-        #                 enrollee_supplies_subject,
-        #                 not requires_manager_approval,
-        #                 client_authentication,
-        #                 ]
-        #             ),
-        #             all([enrollment_agent, not requires_manager_approval]),
-        #             ]
-        #         )
-        #         ),
-        #     'name': "%s@%s"
-        #     % (
-        #         ADUtils.get_entry_property(obj, "CN").upper(),
-        #         domainname
-        #     ),
-        #     'type': 'Certificate Template',
-        #     'domain': domainname,
-        #     'Schema Version': schema_version,
-        #     'Template Name': ADUtils.get_entry_property(obj, 'CN'),
-        #     'Display Name': ADUtils.get_entry_property(obj, 'displayName'),
-        #     'Client Authentication': client_authentication,
-        #     'Enrollee Supplies Subject': enrollee_supplies_subject,
-        #     'Extended Key Usage': extended_key_usage,
-        #     'Requires Manager Approval': requires_manager_approval,
-        #     'Validity Period': validity_period,
-        #     'Renewal Period': renewal_period,
-        #     'Certificate Name Flag': certificate_name_flag.to_str_list(),
-        #     'Enrollment Flag': enrollment_flag.to_str_list(),
-        #     'Authorized Signatures Required': authorized_signatures_required,
-        #     'Application Policies': application_policies,
-        #     'Enabled': enabled,
-        #     'Certificate Authorities': list(ades.certtemplates[name]),
-        #     },          
-        #     'ObjectIdentifier': object_identifier.lstrip("{").rstrip("}"), 
-        #     'Aces': aces,
-        # }
         out_certs.append(f"-----------------------------------------")
         out_certs.append(f"Enabled: {enabled}")
         out_certs.append(f"CA Name: {list(ades.certtemplates[name])}")
@@ -189,7 +114,7 @@ for idx, obj in track(enumerate(ades.snap.objects), description="Processing obje
 
 if args.output_folder:
     if out_certs:
-        with open(Path(args.output_folder / "certs.txt"), "w", encoding="utf-8") as outFile_certs:
+        with open(args.output_folder / "certs.txt", "w", encoding="utf-8") as outFile_certs:
             outFile_certs.write(os.linesep.join(out_certs))
 
     logging.info(f"Output written to files in {args.output_folder}")

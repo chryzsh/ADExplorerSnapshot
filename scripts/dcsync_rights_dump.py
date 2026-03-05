@@ -41,7 +41,9 @@ def _to_rights_list(rights_value):
     try:
         return [str(x) for x in list(rights_value)]
     except TypeError:
-        return [str(x) for x in rights_value.to_list()]
+        if hasattr(rights_value, "to_list"):
+            return [str(x) for x in rights_value.to_list()]
+        return [str(rights_value)]
 
 
 def _matched_rights(rights):

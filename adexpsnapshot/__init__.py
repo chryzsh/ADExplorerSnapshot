@@ -61,8 +61,9 @@ class ADExplorerSnapshot(object):
 
             dico = None
             try:
-                dico = Unpickler(open(cacheFileName, "rb")).load()
-            except (OSError, IOError, EOFError) as e:
+                with open(cacheFileName, "rb") as cache_file:
+                    dico = Unpickler(cache_file).load()
+            except (OSError, IOError, EOFError):
                 pass
 
             if dico and dico.get('unixtime') == self.snap.header.filetimeUnix:
@@ -250,9 +251,9 @@ def main():
 
     if not os.path.exists(args.output):
         try:
-            os.mkdir(args.output)
-        except:
-            logging.error(f"Unable to create output directory '{args.output}'.")
+            os.makedirs(args.output, exist_ok=True)
+        except OSError as exc:
+            logging.error(f"Unable to create output directory '{args.output}': {exc}")
             return
     
     if not os.path.isdir(args.output):

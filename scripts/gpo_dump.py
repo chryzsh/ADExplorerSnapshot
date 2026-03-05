@@ -10,27 +10,11 @@ from bloodhound.ad.utils import ADUtils
 from datetime import datetime, timezone
 from certipy.lib.security import CertificateSecurity
 from security_aces import security_to_bloodhound_aces
-from pathlib import Path
+from report_utils import valid_directory
 import argparse
-import os
 import logging
 
-def valid_directory(path):
-    """Check if the provided path is a valid directory or create it if it does not exist."""
-    path = Path(path) 
-    if not path.exists():
-        # Attempt to create the directory
-        try:
-            path.mkdir(parents=True, exist_ok=True)
-        except OSError as e:
-            # If creation fails, raise an argparse error
-            raise argparse.ArgumentTypeError(f"Could not create directory: {path}. {str(e)}")
-    elif not path.is_dir():
-        # If the path exists but is not a directory, raise an error
-        raise argparse.ArgumentTypeError(f"The path {path} exists but is not a directory.")
-    return path
-
-parser = argparse.ArgumentParser(add_help=True, description="Script to dump interesting stuff from an AdExplorer snapshot", formatter_class=argparse.RawDescriptionHelpFormatter)
+parser = argparse.ArgumentParser(add_help=True, description="Script to dump GPO information from an AdExplorer snapshot", formatter_class=argparse.RawDescriptionHelpFormatter)
 parser.add_argument("snapshot", type=argparse.FileType("rb"), help="Path to the snapshot file")
 parser.add_argument("-o", "--output_folder", required=True, type=valid_directory, help="Folder to save output to")
 args = parser.parse_args()
@@ -41,7 +25,7 @@ ades.preprocessCached()
 # Out streams
 out_gpo = []
 
-for idx, obj in track(enumerate(ades.snap.objects), description="Processing objects", total=ades.snap.header.numObjects):
+for obj in track(ades.snap.objects, description="Processing objects", total=ades.snap.header.numObjects):
     if 'grouppolicycontainer' in obj.classes:
         name = ADUtils.get_entry_property(obj, 'name')
         displayname = ADUtils.get_entry_property(obj, 'displayname')
@@ -84,7 +68,7 @@ for idx, obj in track(enumerate(ades.snap.objects), description="Processing obje
 
 if args.output_folder:
     if out_gpo:
-        with open(Path(args.output_folder / "gpo.txt"), "w", encoding="utf-8") as outFile_gpo:
+        with open(args.output_folder / "gpo.txt", "w", encoding="utf-8") as outFile_gpo:
             outFile_gpo.write(os.linesep.join(map(str, out_gpo)))
 
     logging.info(f"Output written to files in {args.output_folder}")
