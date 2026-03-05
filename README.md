@@ -97,6 +97,12 @@ The `scripts/` folder contains standalone utilities that extract specific data f
 python3 scripts/run_all.py snapshot.dat -o ./snapshot_dump
 ```
 
+Optionally generate a standalone static HTML report at the end:
+
+```bash
+python3 scripts/run_all.py snapshot.dat -o ./snapshot_dump --html-report
+```
+
 This produces a structured output folder:
 
 ```
@@ -139,6 +145,12 @@ To generate a standalone HTML report instead of starting a web server:
 python3 scripts/viewer.py ./snapshot_dump --html snapshot_dump.html
 ```
 
+Alternative static report generator:
+
+```bash
+python3 scripts/html_report.py ./snapshot_dump -o snapshot_report.html
+```
+
 ### Individual scripts
 
 | Script | Description | Usage |
@@ -153,6 +165,7 @@ python3 scripts/viewer.py ./snapshot_dump --html snapshot_dump.html
 | `laps_dump.py` | Legacy LAPS + Windows LAPS attributes | `python3 scripts/laps_dump.py snapshot.dat [-o out.txt]` |
 | `tier0_membership_dump.py` | Nested Tier-0 group membership expansion | `python3 scripts/tier0_membership_dump.py snapshot.dat [-o out.txt]` |
 | `stale_and_risky_objects_dump.py` | Stale/risky user and computer objects | `python3 scripts/stale_and_risky_objects_dump.py snapshot.dat [-o out.txt] [--stale-days 90]` |
+| `html_report.py` | Static HTML report generator from dump folders | `python3 scripts/html_report.py snapshot_dump/ [-o report.html] [--max-rows 2000]` |
 | `cert_dump.py` | Certificate templates and ACLs | `python3 scripts/cert_dump.py snapshot.dat -o output_folder/` |
 | `gpo_dump.py` | GPO info and ACLs | `python3 scripts/gpo_dump.py snapshot.dat -o output_folder/` |
 | `interestingdata_dump.py` | Security-relevant data (see below) | `python3 scripts/interestingdata_dump.py snapshot.dat -o output_folder/` |

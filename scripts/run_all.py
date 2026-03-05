@@ -130,6 +130,13 @@ def main():
     )
     parser.add_argument("snapshot", help="Path to the snapshot .dat file")
     parser.add_argument("-o", "--output", default="snapshot_dump", help="Output directory (default: snapshot_dump)")
+    parser.add_argument(
+        "--html-report",
+        nargs="?",
+        const="report.html",
+        default=None,
+        help="Generate static HTML report after all scripts. Optional output path (default: <output>/report.html).",
+    )
     args = parser.parse_args()
 
     snapshot = os.path.abspath(args.snapshot)
@@ -183,6 +190,27 @@ def main():
     print()
     print(f"[*] Complete: {passed} passed, {failed} failed, {skipped} skipped")
     print(f"[*] Results in: {outdir}")
+
+    if args.html_report:
+        report_script = os.path.join(SCRIPTS_DIR, "html_report.py")
+        report_path = args.html_report
+        if args.html_report == "report.html":
+            report_path = os.path.join(outdir, "report.html")
+        elif not os.path.isabs(report_path):
+            report_path = os.path.abspath(report_path)
+
+        print(f"[*] Generating HTML report: {report_path}")
+        result = subprocess.run(
+            [sys.executable, report_script, outdir, "-o", report_path],
+            stderr=subprocess.PIPE,
+            text=True,
+        )
+        if result.returncode != 0:
+            print("[-] HTML report generation failed:")
+            for line in result.stderr.strip().splitlines()[-5:]:
+                print(f"    {line}")
+        else:
+            print(f"[+] HTML report written: {report_path}")
 
 if __name__ == "__main__":
     main()
