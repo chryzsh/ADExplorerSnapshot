@@ -9,7 +9,6 @@ from rich.progress import track
 from bloodhound.ad.utils import ADUtils
 from report_utils import convert_ad_timestamp
 import argparse
-import os
 
 parser = argparse.ArgumentParser(add_help=True, description="Script to dump selected AD attributes from an AdExplorer snapshot", formatter_class=argparse.RawDescriptionHelpFormatter)
 parser.add_argument("snapshot", type=argparse.FileType("rb"), help="Path to the snapshot file")
