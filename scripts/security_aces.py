@@ -2,6 +2,7 @@
 
 from bloodhound.ad.utils import ADUtils
 from certipy.lib.constants import EXTENDED_RIGHTS_MAP
+from certipy.lib.security import ActiveDirectorySecurity
 
 
 def _resolve_principal(ades, sid):
@@ -19,6 +20,32 @@ def _resolve_principal(ades, sid):
         return sid, principal_type, principal_accountname
     except KeyError:
         return sid, "Unknown", "Unknown"
+
+
+def resolve_principal(ades, sid):
+    """Resolve SID to a stable tuple for report output."""
+    principal_sid, principal_type, principal_name = _resolve_principal(ades, sid)
+    principal_dn = ""
+
+    if sid not in ADUtils.WELLKNOWN_SIDS:
+        try:
+            entry = ades.snap.getObject(ades.sidcache[sid])
+            principal_dn = ADUtils.get_entry_property(entry, "distinguishedName", "") or ""
+        except KeyError:
+            pass
+
+    return principal_sid, principal_name, principal_type, principal_dn
+
+
+def extract_security_sids(raw_security_descriptor):
+    """Extract SIDs from a raw security descriptor."""
+    if not raw_security_descriptor:
+        return []
+    try:
+        security = ActiveDirectorySecurity(raw_security_descriptor)
+        return sorted(security.aces.keys())
+    except Exception:
+        return []
 
 
 def _to_rights_list(rights_value):
