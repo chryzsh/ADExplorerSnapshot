@@ -5,202 +5,369 @@ import sys, os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import argparse
+import json
 from html import escape
 from pathlib import Path
 
 from viewer import load_data
 
 
-def render_report(sections, title, max_rows):
-    section_count = len(sections)
-    total_rows = sum(len(s.get("rows", [])) for s in sections.values())
-
-    nav_items = []
-    section_blocks = []
-
-    for idx, key in enumerate(sorted(sections.keys())):
-        anchor = f"sec-{idx}"
+def prepare_sections(sections, max_rows):
+    prepared = {}
+    for key in sorted(sections.keys()):
         headers = sections[key].get("headers", [])
         rows = sections[key].get("rows", [])
-
-        nav_items.append(
-            f'<li><a href="#{anchor}">{escape(key)}</a> '
-            f'<span class="count">{len(rows)} rows</span></li>'
-        )
+        total_rows = len(rows)
 
         if max_rows > 0:
             shown_rows = rows[:max_rows]
-            remaining = len(rows) - len(shown_rows)
         else:
             shown_rows = rows
-            remaining = 0
 
-        table_html = []
-        table_html.append("<table>")
-        table_html.append("<thead><tr>")
-        for h in headers:
-            table_html.append(f"<th>{escape(str(h))}</th>")
-        table_html.append("</tr></thead>")
-        table_html.append("<tbody>")
-        for row in shown_rows:
-            table_html.append("<tr>")
-            padded = list(row) + [""] * max(0, len(headers) - len(row))
-            for cell in padded[:len(headers)]:
-                table_html.append(f"<td>{escape(str(cell))}</td>")
-            table_html.append("</tr>")
-        table_html.append("</tbody>")
-        table_html.append("</table>")
+        prepared[key] = {
+            "headers": headers,
+            "rows": shown_rows,
+            "total_rows": total_rows,
+            "omitted_rows": max(0, total_rows - len(shown_rows)),
+        }
 
-        more_html = ""
-        if remaining > 0:
-            more_html = (
-                f'<p class="note">Showing first {len(shown_rows)} rows '
-                f"out of {len(rows)}. {remaining} omitted.</p>"
-            )
+    return prepared
 
-        if not headers:
-            section_table = '<p class="note">No columns detected in this section.</p>'
-        else:
-            section_table = "".join(table_html) + more_html
 
-        section_blocks.append(
-            f"""
-<section id="{anchor}">
-  <h2>{escape(key)} <span class="count">{len(rows)} rows</span></h2>
-  {section_table}
-</section>
-"""
-        )
+def render_report(sections, title, max_rows):
+    prepared_sections = prepare_sections(sections, max_rows)
+    section_count = len(prepared_sections)
+    total_rows = sum(s.get("total_rows", 0) for s in prepared_sections.values())
+    data_json = json.dumps(prepared_sections).replace("</", "<\\/")
 
-    return f"""<!DOCTYPE html>
+    template = """<!DOCTYPE html>
 <html>
 <head>
   <meta charset="utf-8">
-  <title>{escape(title)}</title>
+  <title>__TITLE__</title>
   <style>
-    body {{
+    * { box-sizing: border-box; }
+    body {
       font-family: "Segoe UI", Tahoma, sans-serif;
-      background: #f6f7f9;
-      color: #1a1d21;
+      background: #eef1f5;
+      color: #18212b;
       margin: 0;
-      padding: 24px;
-    }}
-    .wrap {{
-      max-width: 1300px;
-      margin: 0 auto;
-    }}
-    .meta {{
+      padding: 16px;
+    }
+    .meta {
       background: #ffffff;
       border: 1px solid #d8dde6;
       border-radius: 8px;
-      padding: 16px;
-      margin-bottom: 18px;
-    }}
-    .meta h1 {{
-      margin: 0 0 8px;
-      font-size: 22px;
-    }}
-    .meta p {{
+      padding: 14px 16px;
+      margin-bottom: 12px;
+    }
+    .meta h1 {
       margin: 0;
+      font-size: 20px;
+    }
+    .meta p {
+      margin: 6px 0 0;
       color: #4b5563;
       font-size: 14px;
-    }}
-    nav {{
+    }
+    .layout {
+      display: grid;
+      grid-template-columns: 280px 1fr;
+      gap: 12px;
+      min-height: calc(100vh - 110px);
+    }
+    #sidebar {
       background: #ffffff;
       border: 1px solid #d8dde6;
       border-radius: 8px;
-      padding: 12px 16px;
-      margin-bottom: 18px;
-    }}
-    nav ul {{
-      list-style: none;
-      margin: 0;
-      padding: 0;
-      columns: 2;
-      gap: 24px;
-    }}
-    nav li {{
-      margin: 4px 0;
-      font-size: 14px;
-    }}
-    nav a {{
-      color: #005fb8;
-      text-decoration: none;
-    }}
-    nav a:hover {{
-      text-decoration: underline;
-    }}
-    section {{
-      background: #ffffff;
-      border: 1px solid #d8dde6;
-      border-radius: 8px;
-      padding: 12px;
-      margin-bottom: 16px;
-      overflow-x: auto;
-    }}
-    h2 {{
-      margin: 0 0 10px;
-      font-size: 18px;
-    }}
-    .count {{
-      color: #6b7280;
+      padding: 10px;
+      overflow: auto;
+    }
+    .nav-title {
       font-size: 12px;
-      font-weight: 500;
-      margin-left: 6px;
-    }}
-    table {{
+      color: #64748b;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin: 8px 6px 4px;
+    }
+    .nav-item {
+      padding: 8px 10px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 13px;
+      color: #1f2937;
+      margin: 0;
+    }
+    .nav-item:hover {
+      background: #f1f5f9;
+    }
+    .nav-item.active {
+      background: #dbeafe;
+      color: #0f172a;
+      font-weight: 600;
+    }
+    #main {
+      background: #ffffff;
+      border: 1px solid #d8dde6;
+      border-radius: 8px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+    #toolbar {
+      border-bottom: 1px solid #e2e8f0;
+      padding: 10px 12px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    #section-title {
+      margin: 0;
+      font-size: 16px;
+      color: #0f172a;
+    }
+    #search {
+      margin-left: auto;
+      min-width: 220px;
+      padding: 6px 10px;
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+      font-size: 13px;
+    }
+    #count {
+      font-size: 12px;
+      color: #64748b;
+      white-space: nowrap;
+    }
+    #table-wrap {
+      overflow: auto;
+      padding: 10px 12px;
+      flex: 1;
+    }
+    table {
       width: 100%;
       border-collapse: collapse;
       font-size: 13px;
-    }}
-    th, td {{
+    }
+    th, td {
       border: 1px solid #e5e7eb;
       padding: 6px 8px;
       text-align: left;
       vertical-align: top;
       word-break: break-word;
-    }}
-    th {{
+    }
+    th {
       background: #f3f4f6;
       position: sticky;
       top: 0;
-    }}
-    .note {{
+      cursor: pointer;
+      user-select: none;
+    }
+    .note {
       font-size: 12px;
       color: #6b7280;
       margin-top: 8px;
-    }}
-    @media (max-width: 900px) {{
-      nav ul {{
-        columns: 1;
-      }}
-    }}
+    }
+    .empty {
+      color: #64748b;
+      font-size: 14px;
+      padding: 20px 8px;
+    }
+    @media (max-width: 900px) {
+      .layout {
+        grid-template-columns: 1fr;
+        min-height: auto;
+      }
+      #search {
+        margin-left: 0;
+        width: 100%;
+      }
+    }
   </style>
 </head>
 <body>
-  <div class="wrap">
-    <div class="meta">
-      <h1>{escape(title)}</h1>
-      <p>{section_count} sections, {total_rows} rows</p>
-    </div>
-    <nav>
-      <ul>
-        {"".join(nav_items)}
-      </ul>
-    </nav>
-    {"".join(section_blocks)}
+  <div class="meta">
+    <h1>__TITLE__</h1>
+    <p>__SECTION_COUNT__ sections, __TOTAL_ROWS__ rows</p>
   </div>
+  <div class="layout">
+    <aside id="sidebar">
+      <div id="nav"></div>
+    </aside>
+    <div id="main">
+      <div id="toolbar">
+        <h2 id="section-title">Select a section</h2>
+        <input id="search" type="text" placeholder="Filter rows...">
+        <span id="count"></span>
+      </div>
+      <div id="table-wrap">
+        <div class="empty">Select a section from the left navigation.</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const DATA = __DATA__;
+    const navEl = document.getElementById("nav");
+    const titleEl = document.getElementById("section-title");
+    const searchEl = document.getElementById("search");
+    const countEl = document.getElementById("count");
+    const tableWrapEl = document.getElementById("table-wrap");
+
+    let currentKey = null;
+    let sortCol = -1;
+    let sortAsc = true;
+
+    const groups = {};
+    Object.keys(DATA).forEach((key) => {
+      const parts = key.split("/");
+      const group = parts.length > 1 ? parts[0] : "general";
+      const name = parts.length > 1 ? parts[1] : parts[0];
+      if (!groups[group]) groups[group] = [];
+      groups[group].push({ key, name });
+    });
+
+    function renderNav() {
+      const items = [];
+      Object.keys(groups).sort().forEach((group) => {
+        items.push(`<div class="nav-title">${esc(group)}</div>`);
+        groups[group].sort((a, b) => a.name.localeCompare(b.name)).forEach((item) => {
+          const rowCount = DATA[item.key].total_rows || 0;
+          items.push(
+            `<div class="nav-item" data-key="${esc(item.key)}">${esc(item.name)} <span class="note">(${rowCount})</span></div>`
+          );
+        });
+      });
+
+      navEl.innerHTML = items.join("");
+      navEl.querySelectorAll(".nav-item").forEach((el) => {
+        el.addEventListener("click", () => {
+          selectSection(el.getAttribute("data-key"), el);
+        });
+      });
+    }
+
+    function selectSection(key, navElement) {
+      currentKey = key;
+      sortCol = -1;
+      sortAsc = true;
+      searchEl.value = "";
+
+      document.querySelectorAll(".nav-item").forEach((el) => el.classList.remove("active"));
+      if (navElement) navElement.classList.add("active");
+
+      titleEl.textContent = key;
+      renderTable();
+    }
+
+    function renderTable() {
+      if (!currentKey) return;
+      const section = DATA[currentKey];
+      const headers = section.headers || [];
+      const rows = section.rows || [];
+      const totalRows = section.total_rows || rows.length;
+      const omittedRows = section.omitted_rows || 0;
+
+      const filter = searchEl.value.toLowerCase();
+      let filtered = rows;
+      if (filter) {
+        filtered = rows.filter((row) =>
+          row.some((cell) => String(cell).toLowerCase().includes(filter))
+        );
+      }
+
+      if (sortCol >= 0) {
+        filtered = [...filtered].sort((a, b) => {
+          const va = String(a[sortCol] ?? "");
+          const vb = String(b[sortCol] ?? "");
+          return sortAsc
+            ? va.localeCompare(vb, undefined, { numeric: true })
+            : vb.localeCompare(va, undefined, { numeric: true });
+        });
+      }
+
+      countEl.textContent = `${filtered.length} / ${totalRows} rows`;
+
+      if (!headers.length) {
+        tableWrapEl.innerHTML = '<div class="empty">No columns detected in this section.</div>';
+        return;
+      }
+
+      let html = "<table><thead><tr>";
+      headers.forEach((header, index) => {
+        const arrow = sortCol === index ? (sortAsc ? " ▲" : " ▼") : "";
+        html += `<th onclick="sortBy(${index})">${esc(header)}${arrow}</th>`;
+      });
+      html += "</tr></thead><tbody>";
+
+      if (!filtered.length) {
+        html += `<tr><td colspan="${headers.length}">No rows match the current filter.</td></tr>`;
+      } else {
+        filtered.forEach((row) => {
+          html += "<tr>";
+          const padded = [...row];
+          while (padded.length < headers.length) padded.push("");
+          padded.slice(0, headers.length).forEach((cell) => {
+            html += `<td>${esc(cell)}</td>`;
+          });
+          html += "</tr>";
+        });
+      }
+
+      html += "</tbody></table>";
+      if (omittedRows > 0) {
+        html += `<div class="note">Report export truncated this section by ${omittedRows} rows (use --max-rows 0 to include all).</div>`;
+      }
+
+      tableWrapEl.innerHTML = html;
+    }
+
+    function sortBy(column) {
+      if (sortCol === column) sortAsc = !sortAsc;
+      else {
+        sortCol = column;
+        sortAsc = true;
+      }
+      renderTable();
+    }
+
+    function esc(value) {
+      return String(value)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;");
+    }
+
+    window.sortBy = sortBy;
+    searchEl.addEventListener("input", renderTable);
+    renderNav();
+
+    const firstNav = document.querySelector(".nav-item");
+    if (firstNav) {
+      selectSection(firstNav.getAttribute("data-key"), firstNav);
+    }
+  </script>
 </body>
 </html>
 """
 
+    return (
+        template
+        .replace("__TITLE__", escape(title))
+        .replace("__SECTION_COUNT__", str(section_count))
+        .replace("__TOTAL_ROWS__", str(total_rows))
+        .replace("__DATA__", data_json)
+    )
+
 
 def main():
-    parser = argparse.ArgumentParser(description="Generate a static HTML report from run_all.py output")
+    parser = argparse.ArgumentParser(description="Generate a static tabbed HTML report from run_all.py output")
     parser.add_argument("dump_dir", help="Path to the snapshot-dump output folder")
     parser.add_argument("-o", "--output", default="snapshot_report.html", help="Output HTML file (default: snapshot_report.html)")
     parser.add_argument("--title", default="AD Explorer Snapshot Report", help="HTML report title")
-    parser.add_argument("--max-rows", type=int, default=2000, help="Maximum rows per section (0 = all, default: 2000)")
+    parser.add_argument("--max-rows", type=int, default=2000, help="Maximum rows per section in exported report (0 = all, default: 2000)")
     args = parser.parse_args()
 
     dump_dir = Path(args.dump_dir)
