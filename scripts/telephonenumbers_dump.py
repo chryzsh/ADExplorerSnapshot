@@ -37,7 +37,7 @@ for idx,obj in enumerate(ades.snap.objects):
             out.add(f"{name} | {telephonenumber} | {title} | {department} | {samaccountname} | {userprincipalname}")
 
 if args.output_file:
-    outFile = open(args.output_file, "w")
-    outFile.write(os.linesep.join(out))
+    with open(args.output_file, "w", encoding="utf-8") as outFile:
+        outFile.write(os.linesep.join(sorted(out)))
     print()
     print("[+]",f"Output written to {args.output_file}")

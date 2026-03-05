@@ -148,6 +148,12 @@ python3 scripts/viewer.py ./snapshot_dump --html snapshot_dump.html
 
 All scripts can be run from any directory.
 
+### Script output notes
+
+- `subnets_dump.py` aggregates subnet output across all domains present in the snapshot.
+- `telephonenumbers_dump.py` writes sorted, deterministic rows when `-o` is used.
+- `interestingdata_dump.py` writes a single `technologies.txt` entry per detected technology.
+
 ### interestingdata_dump.py output files
 
 | File | Contents |

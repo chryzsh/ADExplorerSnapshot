@@ -31,6 +31,8 @@ def get_site_name(dn):
         return site_dn.split(",")[0].split("=")[1]
     return "Unknown"
 
+out = []
+
 for domain in ades.domains:
     print()
     print("[+]",f"Searching inside domain {domain.replace('DC=', '').replace(',', '.')}")
@@ -43,7 +45,6 @@ for domain in ades.domains:
             site = get_site_name(k)
             sites[site].append(subnet)
 
-    out = []
     for site in sorted(sites.keys()):
         subnets = sorted(sites[site], key=lambda s: ipaddress.ip_network(s, strict=False).network_address)
         out.append(f"\n[Site: {site}]")
@@ -58,7 +59,7 @@ for domain in ades.domains:
                 print(f"  {subnet}")
 
 if args.output_file:
-    outFile = open(args.output_file, "w")
-    outFile.write(os.linesep.join(out))
+    with open(args.output_file, "w", encoding="utf-8") as outFile:
+        outFile.write(os.linesep.join(out))
     print()
     print("[+]",f"Output written to {args.output_file}")

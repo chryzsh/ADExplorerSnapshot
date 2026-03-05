@@ -7,15 +7,14 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from adexpsnapshot import ADExplorerSnapshot
 from rich.progress import track
 from bloodhound.ad.utils import ADUtils
-from datetime import datetime, timedelta, timezone
 from certipy.lib.constants import *
-from certipy.lib.security import ActiveDirectorySecurity, CertificateSecurity as CertificateSecurity, CASecurity
+from certipy.lib.security import CertificateSecurity
 from certipy.commands.find import filetime_to_str
+from security_aces import security_to_bloodhound_aces
 from pathlib import Path
 import argparse
 import os
 import logging
-from typing import List
 
 def valid_directory(path):
     """Check if the provided path is a valid directory or create it if it does not exist."""
@@ -43,97 +42,8 @@ args = parser.parse_args()
 ades = ADExplorerSnapshot(args.snapshot, ".")
 ades.preprocessCached()
 
-# Get snapshot time
-snapshot_time = datetime.fromtimestamp(ades.snap.header.filetimeUnix, tz=timezone.utc)
-
 # Out streams
 out_certs = []
-
-def resolve_aces(aces):
-    print(aces.RIGHTS_TYPE)
-
-def security_to_bloodhound_aces(security: ActiveDirectorySecurity) -> List:
-        aces = []
-        principal_type = ""
-
-        owner_sid = security.owner
-        if owner_sid in ADUtils.WELLKNOWN_SIDS:
-            principal = u'%s-%s' % (ADUtils.ldap2domain(ades.rootdomain).upper(), owner_sid)
-            principal_type = ADUtils.WELLKNOWN_SIDS[owner_sid][1].capitalize()
-            principal_accountname = ADUtils.WELLKNOWN_SIDS[owner_sid][0]
-        else:
-            try:
-                entry = ades.snap.getObject(ades.sidcache[owner_sid])
-                resolved_entry = ADUtils.resolve_ad_entry(entry)
-                principal_type = resolved_entry['type']
-                principal_accountname = ADUtils.get_entry_property(entry, 'SamAccountName')
-            except KeyError:
-                principal_accountname = "Unknown"
-                principal_type = "Unknown"
-        aces.append(
-            {
-                "Principal AccountName": principal_accountname,
-                "PrincipalSID": owner_sid,
-                "PrincipalType": principal_type,
-                "RightName": "Owner",
-                "IsInherited": False,
-            }
-        )
-
-        for sid, rights in security.aces.items():
-            principal = sid
-            principal_type = ""
-
-            if sid in ADUtils.WELLKNOWN_SIDS:
-                principal = u'%s-%s' % (ADUtils.ldap2domain(ades.rootdomain).upper(), sid)
-                principal_type = ADUtils.WELLKNOWN_SIDS[sid][1].capitalize()
-                principal_accountname = ADUtils.WELLKNOWN_SIDS[sid][0]
-            else:
-                try:
-                    entry = ades.snap.getObject(ades.sidcache[sid])
-                    resolved_entry = ADUtils.resolve_ad_entry(entry)
-                    principal_type = resolved_entry['type']
-                    principal_accountname = ADUtils.get_entry_property(entry, 'SamAccountName')
-                except KeyError:
-                    principal_accountname = "Unknown"
-                    principal_type = "Unknown"
-
-            try:
-                standard_rights = list(rights["rights"])
-            except:
-                standard_rights = rights["rights"].to_list()
-
-            for right in standard_rights:
-                aces.append(
-                    {
-                        "Principal AccountName": principal_accountname,
-                        "PrincipalSID": principal,
-                        "PrincipalType": principal_type,
-                        "RightName": str(right),
-                        "IsInherited": False,
-                    }
-                )
-
-            extended_rights = rights["extended_rights"]
-
-            for extended_right in extended_rights:
-                aces.append(
-                    {
-                        "Principal AccountName": principal_accountname,
-                        "PrincipalSID": principal,
-                        "PrincipalType": principal_type,
-                        "RightName": EXTENDED_RIGHTS_MAP[extended_right].replace(
-                            "-", ""
-                        )
-                        if extended_right in EXTENDED_RIGHTS_MAP
-                        else extended_right,
-                        "IsInherited": False,
-                    }
-                )
-
-        return aces
-
-domainname = ADUtils.ldap2domain(ades.rootdomain).upper()
 
 for idx, obj in track(enumerate(ades.snap.objects), description="Processing objects", total=ades.snap.header.numObjects):
     object_resolved = ADUtils.resolve_ad_entry(obj)
@@ -210,7 +120,7 @@ for idx, obj in track(enumerate(ades.snap.objects), description="Processing obje
 
         security = CertificateSecurity(ADUtils.get_entry_property(obj, "nTSecurityDescriptor", raw=True))
 
-        aces = security_to_bloodhound_aces(security)
+        aces = security_to_bloodhound_aces(security, ades)
 
         # Could be useful later if we want to output to JSON
         # certtemplate = {
@@ -279,7 +189,7 @@ for idx, obj in track(enumerate(ades.snap.objects), description="Processing obje
 
 if args.output_folder:
     if out_certs:
-        outFile_certs = open(Path(args.output_folder / "certs.txt"), "w")
-        outFile_certs.write(os.linesep.join(out_certs))
+        with open(Path(args.output_folder / "certs.txt"), "w", encoding="utf-8") as outFile_certs:
+            outFile_certs.write(os.linesep.join(out_certs))
 
     logging.info(f"Output written to files in {args.output_folder}")

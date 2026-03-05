@@ -68,6 +68,10 @@ out_technologies = []
 
 # Technology variables
 technologies_sccm = False
+technologies_laps = False
+technologies_adcs = False
+technologies_exchange = False
+technologies_adfs = False
 
 # Attributes to check for plaintext passwords
 plaintext_pwd_attributes = ['UserPassword','UnixUserPassword','unicodePwd','msSFU30Password','orclCommonAttribute','os400Password']
@@ -130,7 +134,7 @@ for idx, obj in track(enumerate(ades.snap.objects), description="Processing obje
         if ms_mcs_admpwd:
             ms_mcs_admpwdexpirationtime = ADUtils.get_entry_property(obj, 'ms-Mcs-AdmPwdExpirationTime')
             out_laps.append(f"{dnshostname}||{ms_mcs_admpwd}||{ms_mcs_admpwdexpirationtime}")
-            out_technologies.append("LAPS||Check laps.txt")
+            technologies_laps = True
         
         # Check for asreproast
         if useraccountcontrol is not None and useraccountcontrol & 4194304:
@@ -230,85 +234,45 @@ for idx, obj in track(enumerate(ades.snap.objects), description="Processing obje
             distinguishedname = ADUtils.get_entry_property(obj, 'distinguishedname')
             out_shares.append(f"{name}||{uncname}||{distinguishedname}")
 
-    technologies_adcs = True if 'pkicertificatetemplate' in obj.classes else False
-    technologies_exchange = True if 'msexchexchangeserver' in obj.classes else False
-    technologies_adfs = True if 'deviceregistrationservice' in obj.classes else False
+    technologies_adcs = technologies_adcs or 'pkicertificatetemplate' in obj.classes
+    technologies_exchange = technologies_exchange or 'msexchexchangeserver' in obj.classes
+    technologies_adfs = technologies_adfs or 'deviceregistrationservice' in obj.classes
 
 if args.output_folder:
-    if out_computers:
-        outFile_comp = open(Path(args.output_folder / "computers.txt"), "w")
-        outFile_comp.write(os.linesep.join(out_computers))
-    
-    if out_active_servers:
-        outFile_active_servers = open(Path(args.output_folder / "active_servers.txt"), "w")
-        outFile_active_servers.write(os.linesep.join(out_active_servers))
+    if technologies_laps:
+        out_technologies.append("LAPS||Check laps.txt")
+    if technologies_sccm:
+        out_technologies.append("SCCM||Check sccm.txt")
+    if technologies_adcs:
+        out_technologies.append("ADCS||ADCS Container found (run cert_dump script)")
+    if technologies_exchange:
+        out_technologies.append("Exchange||Local Exchange server")
+    if technologies_adfs:
+        out_technologies.append("ADFS||ADFS is installed")
 
-    if out_users:
-        outFile_user = open(Path(args.output_folder / "users.txt"), "w")
-        outFile_user.write(os.linesep.join(out_users))
+    output_files = {
+        "computers.txt": out_computers,
+        "active_servers.txt": out_active_servers,
+        "users.txt": out_users,
+        "sccm.txt": out_sccm,
+        "groups.txt": out_groups,
+        "printers.txt": out_printers,
+        "shares.txt": out_shares,
+        "laps.txt": out_laps,
+        "asreproast.txt": out_asreproast,
+        "unconstraineddelegation.txt": out_unconstraineddelegation,
+        "userspn.txt": out_userspn,
+        "plaintextpwd.txt": out_plaintextpwd,
+        "pwdnotreqd.txt": out_pwdnotreqd,
+        "precreated.txt": out_precreated,
+        "sccm_potential_pxe.txt": out_sccm_potential_pxe,
+        "sql_systems.txt": out_sql_systems,
+        "technologies.txt": out_technologies,
+    }
 
-    if out_sccm:
-        outFile_sccm = open(Path(args.output_folder / "sccm.txt"), "w")
-        outFile_sccm.write(os.linesep.join(out_sccm))
-
-    if out_groups:
-        outFile_groups = open(Path(args.output_folder / "groups.txt"), "w")
-        outFile_groups.write(os.linesep.join(out_groups))
-
-    if out_printers:
-        outFile_printers = open(Path(args.output_folder / "printers.txt"), "w")
-        outFile_printers.write(os.linesep.join(out_printers))
-
-    if out_shares:
-        outFile_shares = open(Path(args.output_folder / "shares.txt"), "w")
-        outFile_shares.write(os.linesep.join(out_shares))
-
-    if out_laps:
-        outFile_laps = open(Path(args.output_folder / "laps.txt"), "w")
-        outFile_laps.write(os.linesep.join(out_laps))
-
-    if out_asreproast:
-        outFile_asreproast = open(Path(args.output_folder / "asreproast.txt"), "w")
-        outFile_asreproast.write(os.linesep.join(out_asreproast))
-
-    if out_unconstraineddelegation:
-        outFile_unconstraineddelegation = open(Path(args.output_folder / "unconstraineddelegation.txt"), "w")
-        outFile_unconstraineddelegation.write(os.linesep.join(out_unconstraineddelegation))
-
-    if out_userspn:
-        outFile_userspn = open(Path(args.output_folder / "userspn.txt"), "w")
-        outFile_userspn.write(os.linesep.join(out_userspn))
-
-    if out_plaintextpwd:
-        outFile_plaintextpwd = open(Path(args.output_folder / "plaintextpwd.txt"), "w")
-        outFile_plaintextpwd.write(os.linesep.join(out_plaintextpwd))
-
-    if out_pwdnotreqd:
-        outFile_pwdnotreqd = open(Path(args.output_folder / "pwdnotreqd.txt"), "w")
-        outFile_pwdnotreqd.write(os.linesep.join(out_pwdnotreqd))
-
-    if out_precreated:
-        outFile_precreated = open(Path(args.output_folder / "precreated.txt"), "w")
-        outFile_precreated.write(os.linesep.join(out_precreated))
-
-    if out_sccm_potential_pxe:
-        outFile_sccm_potential_pxe = open(Path(args.output_folder / "sccm_potential_pxe.txt"), "w")
-        outFile_sccm_potential_pxe.write(os.linesep.join(out_sccm_potential_pxe))
-
-    if out_sql_systems:
-        outFile_sql_systems = open(Path(args.output_folder / "sql_systems.txt"), "w")
-        outFile_sql_systems.write(os.linesep.join(out_sql_systems))
-        
-    if out_technologies:
-        outFile_technologies = open(Path(args.output_folder / "technologies.txt"), "w")
-        if technologies_sccm == True:
-            out_technologies.append("SCCM||Check sccm.txt")
-        if technologies_adcs == True:
-            out_technologies.append("ADCS||ADCS Container found (run cert_dump script)")
-        if technologies_exchange == True:
-            out_technologies.append("Exchange||Local Exchange server")
-        if technologies_adfs == True:
-            out_technologies.append("ADFS||ADFS is installed")
-        outFile_technologies.write(os.linesep.join(out_technologies))
+    for filename, lines in output_files.items():
+        if lines:
+            with open(Path(args.output_folder / filename), "w", encoding="utf-8") as output_file:
+                output_file.write(os.linesep.join(lines))
 
     logging.info(f"Output written to files in {args.output_folder}")
