@@ -159,8 +159,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; b
 table { width: 100%; border-collapse: collapse; font-size: 13px; }
 th { position: sticky; top: 0; background: #252526; color: #ccc; text-align: left; padding: 8px 10px; border-bottom: 2px solid #444; cursor: pointer; user-select: none; white-space: nowrap; }
 th:hover { background: #333; }
-td { padding: 6px 10px; border-bottom: 1px solid #2d2d2d; max-width: 400px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-td:hover { white-space: normal; word-break: break-all; }
+td { padding: 6px 10px; border-bottom: 1px solid #2d2d2d; max-width: 500px; word-break: break-all; }
 tr:hover { background: #2a2d2e; }
 .empty { padding: 40px; text-align: center; color: #888; }
 </style>
