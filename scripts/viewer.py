@@ -84,7 +84,7 @@ def load_data(dump_dir):
     if interesting.is_dir():
         for f in sorted(interesting.glob("*.txt")):
             headers, rows = parse_delimited(f)
-            if rows:
+            if headers:
                 sections[f"interesting/{f.stem}"] = {"headers": headers, "rows": rows}
 
     # certs/ and gpo/ - block files
@@ -93,7 +93,7 @@ def load_data(dump_dir):
         if d.is_dir():
             for f in sorted(d.glob("*.txt")):
                 headers, rows = parse_block(f)
-                if rows:
+                if headers:
                     sections[f"{subdir}/{f.stem}"] = {"headers": headers, "rows": rows}
 
     # top-level text files
@@ -109,7 +109,7 @@ def load_data(dump_dir):
             headers, rows = parse_pipe(f)
         else:
             headers, rows = parse_lines(f)
-        if rows:
+        if headers:
             sections[f.stem] = {"headers": headers, "rows": rows}
 
     return sections

@@ -105,6 +105,13 @@ snapshot_dump/
   dns.txt              # AD-integrated DNS records
   dfs.txt              # DFS link paths and target servers
   phonenumbers.txt     # User phone numbers
+  delegation.txt       # Unconstrained/constrained delegation + RBCD
+  dcsync_rights.txt    # Principals with DCSync-relevant rights
+  gmsa.txt             # gMSA/sMSA accounts and password readers
+  shadowcred.txt       # Objects with msDS-KeyCredentialLink
+  laps_extended.txt    # Legacy + Windows LAPS attributes
+  tier0_membership.txt # Expanded nested Tier-0 group membership
+  stale_risky.txt      # Stale/risky user and computer objects
   certs/               # Certificate template info and ACLs
   gpo/                 # Group Policy Objects and ACLs
   interesting/         # See below for contents
@@ -139,6 +146,13 @@ python3 scripts/viewer.py ./snapshot_dump --html snapshot_dump.html
 | `subnets_dump.py` | Subnets grouped by AD site | `python3 scripts/subnets_dump.py snapshot.dat [-p] [-o out.txt]` |
 | `adidns_dump.py` | AD-integrated DNS records | `python3 scripts/adidns_dump.py snapshot.dat [-o out.txt]` |
 | `dfs_dump.py` | DFS link paths and targets | `python3 scripts/dfs_dump.py snapshot.dat [-o out.txt]` |
+| `delegation_dump.py` | Unconstrained/constrained delegation and RBCD | `python3 scripts/delegation_dump.py snapshot.dat [-o out.txt]` |
+| `dcsync_rights_dump.py` | DCSync-capable rights on domain NC ACLs | `python3 scripts/dcsync_rights_dump.py snapshot.dat [-o out.txt]` |
+| `gmsa_dump.py` | gMSA/sMSA accounts and managed password readers | `python3 scripts/gmsa_dump.py snapshot.dat [-o out.txt]` |
+| `shadowcred_dump.py` | Objects with `msDS-KeyCredentialLink` | `python3 scripts/shadowcred_dump.py snapshot.dat [-o out.txt]` |
+| `laps_dump.py` | Legacy LAPS + Windows LAPS attributes | `python3 scripts/laps_dump.py snapshot.dat [-o out.txt]` |
+| `tier0_membership_dump.py` | Nested Tier-0 group membership expansion | `python3 scripts/tier0_membership_dump.py snapshot.dat [-o out.txt]` |
+| `stale_and_risky_objects_dump.py` | Stale/risky user and computer objects | `python3 scripts/stale_and_risky_objects_dump.py snapshot.dat [-o out.txt] [--stale-days 90]` |
 | `cert_dump.py` | Certificate templates and ACLs | `python3 scripts/cert_dump.py snapshot.dat -o output_folder/` |
 | `gpo_dump.py` | GPO info and ACLs | `python3 scripts/gpo_dump.py snapshot.dat -o output_folder/` |
 | `interestingdata_dump.py` | Security-relevant data (see below) | `python3 scripts/interestingdata_dump.py snapshot.dat -o output_folder/` |
@@ -153,6 +167,7 @@ All scripts can be run from any directory.
 - `subnets_dump.py` aggregates subnet output across all domains present in the snapshot.
 - `telephonenumbers_dump.py` writes sorted, deterministic rows when `-o` is used.
 - `interestingdata_dump.py` writes a single `technologies.txt` entry per detected technology.
+- New top-level reports are emitted in `||`-delimited format so `scripts/viewer.py` can render them directly.
 
 ### interestingdata_dump.py output files
 
