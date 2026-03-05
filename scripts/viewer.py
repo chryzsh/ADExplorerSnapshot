@@ -5,6 +5,7 @@
 import sys, os
 import argparse
 import json
+import re
 from http.server import HTTPServer, SimpleHTTPRequestHandler
 from pathlib import Path
 
@@ -74,6 +75,34 @@ def parse_lines(filepath):
     lines = [l for l in lines if l.strip() and not l.startswith("[+]") and not l.startswith("[*]")]
     return ["value"], [[l.strip()] for l in lines]
 
+
+def parse_dns(filepath):
+    """Parse adidns_dump.py output lines."""
+    lines = filepath.read_text().strip().splitlines()
+    lines = [l.strip() for l in lines if l.strip()]
+    if not lines:
+        return [], []
+
+    type_pattern = re.compile(r"^\[\+\]\s+Type:\s*(.+?)\s+name:\s*(.+?)\s+value:\s*(.+)$")
+    unexpected_pattern = re.compile(r"^\[\+\]\s+name:\s*(.+?)\s+Unexpected record type seen:\s*(.+)$")
+
+    rows = []
+    for line in lines:
+        m = type_pattern.match(line)
+        if m:
+            rows.append([m.group(1), m.group(2), m.group(3)])
+            continue
+
+        m = unexpected_pattern.match(line)
+        if m:
+            rows.append(["Unexpected", m.group(1), m.group(2)])
+            continue
+
+    if not rows:
+        return ["value"], [[line] for line in lines]
+
+    return ["record_type", "name", "value"], rows
+
 def load_data(dump_dir):
     """Load all data from a snapshot-dump directory."""
     dump = Path(dump_dir)
@@ -104,6 +133,8 @@ def load_data(dump_dir):
         first_line = f.read_text().split("\n", 1)[0]
         if "||" in first_line:
             headers, rows = parse_delimited(f)
+        elif first_line.startswith("[+] Type:") or "Unexpected record type seen:" in first_line:
+            headers, rows = parse_dns(f)
         elif " | " in first_line:
             # pipe-separated (phonenumbers)
             headers, rows = parse_pipe(f)
